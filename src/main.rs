@@ -19,8 +19,11 @@ impl<T : Update> TimerHandler<T> {
 impl<T : Update> Handler for TimerHandler<T> {
     type Timeout = u64;
     type Message = ();
-    fn timeout(&mut self, _event_loop: &mut EventLoop<TimerHandler<T>>, _timeout: Self::Timeout) {
+    fn tick(&mut self, _event_loop: &mut EventLoop<Self>) {
         self.entity.update();
+    }
+    fn timeout(&mut self, _event_loop: &mut EventLoop<Self>, _timeout: Self::Timeout) {
+        // self.entity.update();
         let _ = _event_loop.timeout_ms(_timeout, _timeout).unwrap();
     }
 }
@@ -46,10 +49,12 @@ impl Update for Entity {
 fn main() {
     let e_thread = thread::spawn(move || {
         let mut handler = TimerHandler::new(Entity::new());
-        let mut event_loop = mio::EventLoop::new().unwrap();
+        let mut ev_cfg = mio::EventLoopConfig::new();
+        ev_cfg.timer_tick_ms(1);
+        let mut event_loop = mio::EventLoop::configured(ev_cfg).unwrap();
         let timeout = 1000u64;
         let _ = event_loop.timeout_ms(timeout, timeout).unwrap();
-        println!("running timer handler\n\t");
+        // println!("running timer handler\n\t");
         event_loop.run(&mut handler).unwrap();
     });
      e_thread.join().unwrap();
